@@ -629,6 +629,73 @@ fn enter_with_animation<B: ratatui::backend::Backend>(
     Ok(())
 }
 
+// Animate a slide-to-the-right transition: the mirror image of
+/// `slide_left_transition`, used when navigating back up a directory. The
+/// old (child) view exits to the right while the new (parent) view enters
+/// from the left.
+fn slide_right_transition<B: ratatui::backend::Backend>(
+    terminal: &mut Terminal<B>,
+    old_buf: Buffer,
+    area: Rect,
+    app: &mut App,
+) -> anyhow::Result<()> {
+    let width = area.width as u32;
+    if width == 0 || area.height == 0 {
+        return Ok(());
+    }
+
+    let new_buf = {
+        let mut b = Buffer::empty(area);
+        draw_ui(&mut b, area, app);
+        b
+    };
+
+    for step in 1..=ANIM_STEPS {
+        let t = step as f64 / ANIM_STEPS as f64;
+        let eased = ease_out_cubic(t);
+        let offset = (width as f64 * eased).round() as u32;
+        let offset = offset.min(width);
+        terminal
+            .draw(|f| {
+                let buf = f.buffer_mut();
+                for y in area.y..area.y + area.height {
+                    for x in area.x..area.x + area.width {
+                        let col = (x - area.x) as u32;
+                        let src = if col < offset {
+                            let nx = (width - offset + col) as u16;
+                            &new_buf[(area.x + nx, y)]
+                        } else {
+                            let ox = (col - offset) as u16;
+                            &old_buf[(area.x + ox, y)]
+                        };
+                        buf[(x, y)] = src.clone();
+                    }
+                }
+            })
+            .ok();
+        std::thread::sleep(Duration::from_millis(ANIM_FRAME_MS));
+    }
+    Ok(())
+}
+
+/// Go up to the parent directory (if any) with a slide-right transition.
+fn go_up_with_animation<B: ratatui::backend::Backend>(
+    terminal: &mut Terminal<B>,
+    app: &mut App,
+) -> anyhow::Result<()> {
+    if app.cwd.parent().is_none() {
+        return Ok(());
+    }
+
+    let size = terminal.size().unwrap();
+    let area = Rect::new(0, 0, size.width, size.height);
+
+    let old_buf = snapshot(app, area);
+    app.go_up()?;
+    slide_right_transition(terminal, old_buf, area, app)?;
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let start = std::env::args()
         .nth(1)
@@ -682,7 +749,9 @@ fn run<B: ratatui::backend::Backend + io::Write>(
                     (KeyModifiers::NONE, KeyCode::Enter | KeyCode::Right) => {
                         enter_with_animation(terminal, app)?
                     }
-                    (KeyModifiers::NONE, KeyCode::Backspace | KeyCode::Left) => app.go_up()?,
+                    (KeyModifiers::NONE, KeyCode::Backspace | KeyCode::Left) => {
+                        go_up_with_animation(terminal, app)?
+                    }
                     (KeyModifiers::NONE, KeyCode::Char('r')) => app.reload()?,
                     (KeyModifiers::NONE, KeyCode::Char('.')) => {
                         app.show_hidden = !app.show_hidden;

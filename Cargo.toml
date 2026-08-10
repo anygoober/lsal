@@ -1,0 +1,12 @@
+[package]
+name = "lsal"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anstyle = "1.0.14"
+anyhow = "1.0.104"
+crossterm = "0.29.0"
+pico-args = "0.5.0"
+ratatui = "0.30.2"
+thiserror = "2.0.19"

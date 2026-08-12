@@ -1,3 +1,7 @@
+// THIS FILE IS AI-GENERATED WITH VERY LITTLE HELP FROM A HUMAN.
+//
+// PLEASE DO NOT TAKE THIS SERIOUSLY!
+
 use std::collections::HashSet;
 use std::fs;
 use std::io;
@@ -205,9 +209,17 @@ impl App {
     }
 
     fn go_up(&mut self) -> io::Result<()> {
+        let child_name = self
+            .cwd
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string());
+
         if self.cwd.pop() {
             self.reload()?;
-            self.state.select(Some(0));
+            let idx = child_name
+                .and_then(|name| self.entries.iter().position(|e| e.name == name))
+                .unwrap_or(0);
+            self.state.select(Some(idx));
         }
         Ok(())
     }

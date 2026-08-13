@@ -271,7 +271,9 @@ impl App {
         }
         let n = paths.len();
         self.clipboard = Some((ClipOp::Move, paths));
-        self.status = Some(format!("Cut {n} item(s) to clipboard — press p to paste"));
+        self.status = Some(format!(
+            "Cut {n} item(s) to clipboard — press Ctrl-V to paste"
+        ));
     }
 
     /// Paste whatever is in the clipboard into the current directory.

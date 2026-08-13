@@ -429,6 +429,7 @@ fn open_shell<B: ratatui::backend::Backend + io::Write>(
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, cursor::Show)?;
 
+    println!("lsal: {}\n", app.cwd.display());
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
     std::process::Command::new(shell)
         .current_dir(&app.cwd)

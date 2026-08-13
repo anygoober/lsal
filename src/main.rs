@@ -224,7 +224,6 @@ impl App {
         Ok(())
     }
 
-    /// Toggle the mark on the currently highlighted row.
     fn toggle_mark(&mut self) {
         if let Some(e) = self.selected_entry() {
             let path = self.cwd.join(&e.name);
@@ -261,9 +260,7 @@ impl App {
         }
         let n = paths.len();
         self.clipboard = Some((ClipOp::Copy, paths));
-        self.status = Some(format!(
-            "Copied {n} item(s) to clipboard — press p to paste"
-        ));
+        self.status = Some(format!("Copied {n} item(s) to clipboard — ctrl-C to paste"));
     }
 
     fn cut_to_clipboard(&mut self) {
@@ -524,8 +521,6 @@ fn draw_ui(buf: &mut Buffer, area: Rect, app: &mut App) {
 
     StatefulWidget::render(table, chunks[1], buf, &mut app.state);
 
-    // Status line: a pending confirmation takes priority over anything else,
-    // then the last operation's result, then a hint about the clipboard.
     let (status_text, status_style) = if let Some(PendingConfirm::Delete(paths)) = &app.confirm {
         (
             format!(
@@ -545,8 +540,23 @@ fn draw_ui(buf: &mut Buffer, area: Rect, app: &mut App) {
             ClipOp::Move => "move",
         };
         (
-            format!("Clipboard: {} item(s) staged to {verb}", paths.len()),
+            format!(
+                "Clipboard: {} item{s} staged to {verb}",
+                paths.len(),
+                s = if paths.len() == 1 { "" } else { "s" }
+            ),
             Style::default().fg(Color::DarkGray),
+        )
+    } else if !app.marked.is_empty() {
+        (
+            format!(
+                "selected {} item{s}",
+                app.marked.len(),
+                s = if app.marked.len() == 1 { "" } else { "s" }
+            ),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )
     } else {
         (String::new(), Style::default())
@@ -555,10 +565,8 @@ fn draw_ui(buf: &mut Buffer, area: Rect, app: &mut App) {
         .style(status_style)
         .render(chunks[2], buf);
 
-    let footer = Paragraph::new(Line::from(
-        "↑/k ↓/j move  Enter open  Bksp up  space mark  y copy  x cut  p paste  d delete  u unmark  . hidden  ! shell  r refresh  q quit",
-    ))
-    .style(Style::default().fg(Color::DarkGray));
+    let footer = Paragraph::new(Line::from("↑/k ↓/j move  q quit"))
+        .style(Style::default().fg(Color::DarkGray));
     footer.render(chunks[3], buf);
 }
 

@@ -1,6 +1,6 @@
 `lsal` makes the linux command `ls -al` interactive.
 
-![preview](./assets/preview)
+![preview](./assets/preview.png)
 
 ## Keybinding
 - `Up` / `k`: Move up
